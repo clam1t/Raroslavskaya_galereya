@@ -1,37 +1,52 @@
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, session
-
-
-
+from db import db
 
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'secret'
 
+@app.route('/')
+@app.route('/yar_galery/')
+@app.route('/yar_galery/home/')
+def home():
+    return render_template('home.html')
 
-DATABASE = 'database.db'
-PASSWORD = 'Yarik228'
+@app.route('/yar_galery/logout/')
+def logout():
+    session.clear()
+    return redirect(url_for('home'))
 
-def init_db():
-	with sqlite3.connect(DATABASE) as conn:
-		conn.execute(
-			'''CREATE TABLE IF NOT EXISTS qr_codes (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT,
-			signer TEXT,
-			date TEXT,
-			qr_code TEXT,
-			file_hash TEXT,
-			insert_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			status_id INTEGER,
-			note TEXT
-			)
-			''')
-		conn.commit()
+@app.route('/yar_galery/login/')
+def login_page():
+    error = request.args.get('error', '')
+    return render_template('login.html', error=error)
 
-def save_qr_code(title, signer, date, qr_code_base64, note):
-	with sqlite3.connect(DATABASE) as conn:
-		conn.execute(
-			'INSERT INTO qr_codes (title, signer, date, qr_code, note, status_id) VALUES (?, ?, ?, ?, ?, 1)',
-			(title, signer, date, qr_code_base64, note)
-		)
-		conn.commit()
+@app.route('/yar_galery/register/')
+def register_page():
+    return render_template('register.html')
+
+@app.route('/yar_galery/home/login/', methods=['POST'])
+def login():
+    first_name = request.form['first_name']
+    second_name = request.form['second_name']
+    password = request.form['password']
+    if not all([first_name, second_name, password]):
+        return redirect(url_for('login_page', error='Заполните все поля'))
+
+    user = db.con.execute(
+        'SELECT id '
+        'FROM users '
+        'WHERE first_name = ? AND second_name = ? AND password = ?',
+        (first_name, second_name, password)
+    ).fetchone()
+    if user:
+        session['username'] = f"{first_name} {second_name}"
+        session['user_id'] = user['id']
+        return redirect(url_for('home'))
+    else:
+        return redirect(url_for('login_page', error='Неверные данные'))
+
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
