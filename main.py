@@ -16,13 +16,14 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/yar_galery/login/')
-def login_page():
-    error = request.args.get('error', '')
-    return render_template('login.html', error=error)
+@app.route('/yar_galery/buy_ticket/')
+def buy_ticket():
+    return render_template('home.html')
+
+
 
 @app.route('/yar_galery/register/')
-def register_page():
+def register():
     return render_template('register.html')
 
 @app.route('/yar_galery/home/login/', methods=['POST'])

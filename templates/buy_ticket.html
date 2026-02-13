@@ -1,0 +1,32 @@
+{% extends "base_hat.html" %}
+
+{% block title %}Купить билет{% endblock %}
+
+{% block content %}
+<div class="ticket-page">
+    <h1>Купить билет</h1>
+    
+    <div class="exhibitions-list">
+        <div class="exhibition-item">
+            <h3>Современное искусство</h3>
+            <p>Дата: до 30 апреля 2026</p>
+            <p>Цена: 500 руб.</p>
+            <button class="btn-buy" onclick="alert('Для покупки билетов войдите в систему')">Купить</button>
+        </div>
+        
+        <div class="exhibition-item">
+            <h3>Классика XIX века</h3>
+            <p>Дата: до 15 мая 2026</p>
+            <p>Цена: 400 руб.</p>
+            <button class="btn-buy" onclick="alert('Для покупки билетов войдите в систему')">Купить</button>
+        </div>
+        
+        <div class="exhibition-item">
+            <h3>Фотография</h3>
+            <p>Дата: до 1 июня 2026</p>
+            <p>Цена: 300 руб.</p>
+            <button class="btn-buy" onclick="alert('Для покупки билетов войдите в систему')">Купить</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,6 +3,31 @@
 {% block title %}Главная{% endblock %}
 
 {% block content %}
-<h1>Добро пожаловать в галерею!</h1>
-<p>Здесь вы можете приобрести билеты на выставки.</p>
+<div class="hero-section">
+    <h1>Добро пожаловать в галерею!</h1>
+    <p>Откройте для себя мир искусства</p>
+
+    <div class="gallery-preview">
+        <div class="exhibition-card">
+            <img src="https://via.placeholder.com/300x200" alt="Выставка">
+            <h3>Современное искусство</h3>
+            <p>до 30 апреля 2026</p>
+            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
+        </div>
+
+        <div class="exhibition-card">
+            <img src="https://via.placeholder.com/300x200" alt="Выставка">
+            <h3>Классика XIX века</h3>
+            <p>до 15 мая 2026</p>
+            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
+        </div>
+
+        <div class="exhibition-card">
+            <img src="https://via.placeholder.com/300x200" alt="Выставка">
+            <h3>Фотография</h3>
+            <p>до 1 июня 2026</p>
+            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
+        </div>
+    </div>
+</div>
 {% endblock %}

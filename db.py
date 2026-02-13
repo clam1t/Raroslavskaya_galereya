@@ -10,7 +10,6 @@ class database:
 					  id INTEGER PRIMARY KEY AUTOINCREMENT,
 					  first_name TEXT,
 					  last_name TEXT,
-					  email TEXT,
 					  date DATETIME,
 					  qr_code TEXT
 				   )
@@ -23,6 +22,7 @@ class database:
 						id INTEGER PRIMARY KEY AUTOINCREMENT,
 						first_name TEXT,
 						last_name TEXT,
+						email TEXT,
 						password TEXT
 					)
 				''')
