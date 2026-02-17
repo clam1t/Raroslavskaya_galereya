@@ -22,30 +22,45 @@ def buy_ticket():
 
 
 
-@app.route('/yar_galery/register/')
+@app.route('/yar_galery/register/', methods=['POST'])
 def register():
-    return render_template('register.html')
+    data = request.get_json()
+    if not data:
+        return {'error': 'Нет данных'}, 400
+    first_name = data.get('first_name')
+    second_name = data.get('last_name')
+    password = data.get('password')
+    email = data.get('email')
+    if not all([first_name, second_name, password, email]):
+        return {'error': 'Заполните все поля'}, 400
+    result = db.add_user(first_name, second_name, email, password)
 
-@app.route('/yar_galery/home/login/', methods=['POST'])
+    if 'error' in result:
+        return result, 400
+
+    session['username'] = f"{first_name} {second_name}"
+    session['user_id'] = result['id']
+
+    return {'message': 'Регистрация успешна'}, 200
+
+@app.route('/yar_galery/login/', methods=['POST'])
 def login():
-    first_name = request.form['first_name']
-    second_name = request.form['second_name']
-    password = request.form['password']
+    data = request.get_json()
+    if not data:
+        return {'error': 'Нет данных'}, 400
+    first_name = data.get('first_name')
+    second_name = data.get('last_name')
+    password = data.get('password')
     if not all([first_name, second_name, password]):
-        return redirect(url_for('login_page', error='Заполните все поля'))
+        return {'error': 'Заполните все поля'}, 400
 
-    user = db.con.execute(
-        'SELECT id '
-        'FROM users '
-        'WHERE first_name = ? AND second_name = ? AND password = ?',
-        (first_name, second_name, password)
-    ).fetchone()
+    user = db.get_user(first_name, second_name, password)
     if user:
         session['username'] = f"{first_name} {second_name}"
         session['user_id'] = user['id']
-        return redirect(url_for('home'))
+        return {'message': 'Вход выполнен'}, 200
     else:
-        return redirect(url_for('login_page', error='Неверные данные'))
+        return {'error': 'Неверные данные'}, 401
 
 
 
