@@ -66,6 +66,19 @@ class database:
         finally:
             conn.close()
 
+    def get_user_password(self,first_name,last_name,email):
+        conn = self.get_connection()
+        try:
+            cursor = conn.execute(
+                'SELECT password FROM users WHERE first_name = ? AND last_name = ? AND email = ?',(first_name,last_name,email)
+            )
+            password = cursor.fetchone()
+            if password:
+                return password[0]
+            return  None
+        finally:
+            conn.close()
+
     def add_user(self, first_name, last_name, email, password):
         conn = self.get_connection()
         try:

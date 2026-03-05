@@ -15,11 +15,38 @@ from email.mime.multipart import MIMEMultipart
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'secret'
 
+def send_password_email(to_email, login_password):
+	smtp_server = 'smtp.gmail.com'
+	port = 587
+	sender_email = "egorskurenkov391@gmail.com"
+	password = "sgvf tpfb nxop lqbh"
+
+	message = f"""
+	Ваш пароль!
+	{login_password}
+	"""
+	msg = MIMEMultipart()
+	msg['From'] = sender_email
+	msg['To'] = to_email
+	msg['Subject'] = "Пароль от вашего аккаунта"
+
+	msg.attach(MIMEText(message, 'plain'))
+
+	try:
+		server = smtplib.SMTP(smtp_server, port)
+		server.starttls()
+		server.login(sender_email, password)
+		server.send_message(msg)
+		server.quit()
+		return True
+	except Exception as e:
+		print(f"Ошибка отправки email: {e}")
+		return False
 
 def send_ticket_email(to_email, payment_data):
 	smtp_server = "smtp.gmail.com"
 	port = 587
-	sender_email = "egorskurenkov391@gmail.com"  #
+	sender_email = "egorskurenkov391@gmail.com"
 	password = "sgvf tpfb nxop lqbh"
 
 	message = f"""
@@ -156,6 +183,25 @@ def payment_status(payment_id):
 	if status:
 		return {'status': status}
 	return {'status': 'pending'}
+
+@app.route('/yar_galery/resetPassword/', methods=['GET','POST'])
+def reset_Password():
+	data = request.get_json()
+	if not data:
+		return {'error': 'Нет данных'}, 400
+	first_name = data.get('first_name')
+	second_name = data.get('last_name')
+	email = data.get('email')
+	if not all([first_name, second_name, email]):
+		return {'error': 'Заполните все поля'}, 400
+	password = db.get_user_password(first_name,second_name,email)
+	if password:
+		if send_password_email(email, password):
+			return {'message': 'Пароль отправлен на почту'}, 200
+		else:
+			return {'error': 'Ошибка отправки письма'}, 500
+	else:
+		return {'error': 'Пользователь не найден'}, 404
 
 
 @app.route('/yar_galery/register/', methods=['POST'])

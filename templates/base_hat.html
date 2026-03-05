@@ -25,7 +25,7 @@
         </div>
     </nav>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ (ПО УМОЛЧАНИЮ ЗАКРЫТО) -->
+    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
     <div id="authModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeAuthModal()">&times;</span>
@@ -34,12 +34,14 @@
             <div class="tab-container">
                 <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Вход</button>
                 <button class="tab-btn" id="registerTab" onclick="switchTab('register')">Регистрация</button>
+                <button class="tab-btn" id="passwordResetTab" onclick="switchTab('passwordReset')">Забыл пароль</button>
             </div>
 
             <!-- Форма входа -->
             <div id="loginForm" class="auth-form active">
                 <h2>Вход в систему</h2>
                 <div id="loginError" class="error-message" style="display: none;"></div>
+                <div id="loginSuccess" class="success-message" style="display: none;"></div>
 
                 <form onsubmit="submitLogin(event)">
                     <div class="form-group">
@@ -58,6 +60,32 @@
                     </div>
 
                     <button type="submit" id="loginBtn">Войти</button>
+                </form>
+            </div>
+
+            <!-- Форма восстановления пароля -->
+            <div id="passwordResetForm" class="auth-form">
+                <h2>Восстановить пароль</h2>
+                <div id="passwordError" class="error-message" style="display: none;"></div>
+                <div id="passwordSuccess" class="success-message" style="display: none;"></div>
+
+                <form onsubmit="resetPassword(event)">
+                    <div class="form-group">
+                        <label for="reset_first_name">Имя:</label>
+                        <input type="text" id="reset_first_name" name="first_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reset_last_name">Фамилия:</label>
+                        <input type="text" id="reset_last_name" name="last_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reset_email">Почта:</label>
+                        <input type="email" id="reset_email" name="email" required>
+                    </div>
+
+                    <button type="submit" id="sendcodeBtn">Прислать пароль</button>
                 </form>
             </div>
 
@@ -104,7 +132,7 @@
     </main>
 
     <script>
-        // Открыть модальное окно ТОЛЬКО ПРИ КЛИКЕ
+        // Открыть модальное окно
         function openAuthModal(tab) {
             document.getElementById('authModal').style.display = 'block';
             document.body.style.overflow = 'hidden';
@@ -115,35 +143,52 @@
         function closeAuthModal() {
             document.getElementById('authModal').style.display = 'none';
             document.body.style.overflow = 'auto';
-            // Очистить формы и сообщения
+
+            // Очистить формы
             document.getElementById('loginForm').reset();
             document.getElementById('registerForm').reset();
+            document.getElementById('passwordResetForm').reset();
+
+            // Скрыть сообщения
             document.getElementById('loginError').style.display = 'none';
+            document.getElementById('loginSuccess').style.display = 'none';
             document.getElementById('registerError').style.display = 'none';
             document.getElementById('registerSuccess').style.display = 'none';
+            document.getElementById('passwordError').style.display = 'none';
+            document.getElementById('passwordSuccess').style.display = 'none';
         }
 
         // Переключение между вкладками
         function switchTab(tab) {
             const loginTab = document.getElementById('loginTab');
             const registerTab = document.getElementById('registerTab');
+            const passwordResetTab = document.getElementById('passwordResetTab');
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
+            const passwordResetForm = document.getElementById('passwordResetForm');
 
+            // Сначала убираем активный класс у всех
+            loginTab.classList.remove('active');
+            registerTab.classList.remove('active');
+            passwordResetTab.classList.remove('active');
+            loginForm.classList.remove('active');
+            registerForm.classList.remove('active');
+            passwordResetForm.classList.remove('active');
+
+            // Добавляем активный класс в зависимости от выбранной вкладки
             if (tab === 'login') {
                 loginTab.classList.add('active');
-                registerTab.classList.remove('active');
                 loginForm.classList.add('active');
-                registerForm.classList.remove('active');
-            } else {
+            } else if (tab === 'register') {
                 registerTab.classList.add('active');
-                loginTab.classList.remove('active');
                 registerForm.classList.add('active');
-                loginForm.classList.remove('active');
+            } else if (tab === 'passwordReset') {
+                passwordResetTab.classList.add('active');
+                passwordResetForm.classList.add('active');
             }
         }
 
-        // Отправка входа через JSON
+        // Отправка входа
         async function submitLogin(event) {
             event.preventDefault();
 
@@ -169,38 +214,94 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showLoginSuccess('Вход выполнен! Перенаправление...');
+                    document.getElementById('loginSuccess').textContent = 'Вход выполнен! Перенаправление...';
+                    document.getElementById('loginSuccess').style.display = 'block';
+                    document.getElementById('loginError').style.display = 'none';
+
                     setTimeout(() => {
                         window.location.href = '/yar_galery/home/';
                     }, 1000);
                 } else {
-                    showLoginError(data.error || 'Ошибка входа');
+                    document.getElementById('loginError').textContent = data.error || 'Ошибка входа';
+                    document.getElementById('loginError').style.display = 'block';
+                    document.getElementById('loginSuccess').style.display = 'none';
                 }
             } catch (error) {
-                showLoginError('Ошибка соединения с сервером');
+                document.getElementById('loginError').textContent = 'Ошибка соединения с сервером';
+                document.getElementById('loginError').style.display = 'block';
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Войти';
             }
         }
 
-        // Отправка регистрации через JSON
+        // Восстановление пароля
+        async function resetPassword(event) {
+            event.preventDefault();
+
+            const formData = {
+                first_name: document.getElementById('reset_first_name').value,
+                last_name: document.getElementById('reset_last_name').value,
+                email: document.getElementById('reset_email').value
+            };
+
+            const btn = document.getElementById('sendcodeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Отправка...';
+
+            try {
+                const response = await fetch('/yar_galery/resetPassword/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    document.getElementById('passwordSuccess').textContent = 'Пароль отправлен на почту!';
+                    document.getElementById('passwordSuccess').style.display = 'block';
+                    document.getElementById('passwordError').style.display = 'none';
+
+                    setTimeout(() => {
+                        switchTab('login');
+                    }, 2000);
+                } else {
+                    const data = await response.json();
+                    document.getElementById('passwordError').textContent = data.error || 'Ошибка восстановления';
+                    document.getElementById('passwordError').style.display = 'block';
+                    document.getElementById('passwordSuccess').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('passwordError').textContent = 'Ошибка соединения с сервером';
+                document.getElementById('passwordError').style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Прислать пароль';
+            }
+        }
+
+        // Отправка регистрации
         async function submitRegistration(event) {
             event.preventDefault();
+
+            const password = document.getElementById('reg_password').value;
+            const confirmPassword = document.getElementById('reg_confirm_password').value;
+
+            if (password !== confirmPassword) {
+                document.getElementById('registerError').textContent = 'Пароли не совпадают';
+                document.getElementById('registerError').style.display = 'block';
+                document.getElementById('registerSuccess').style.display = 'none';
+                return;
+            }
 
             const formData = {
                 first_name: document.getElementById('reg_first_name').value,
                 last_name: document.getElementById('reg_last_name').value,
                 email: document.getElementById('reg_email').value,
-                password: document.getElementById('reg_password').value,
-                confirm_password: document.getElementById('reg_confirm_password').value
+                password: password,
+                confirm_password: confirmPassword
             };
-
-            // Валидация паролей
-            if (formData.password !== formData.confirm_password) {
-                showRegisterError('Пароли не совпадают');
-                return;
-            }
 
             const btn = document.getElementById('registerBtn');
             btn.disabled = true;
@@ -218,49 +319,25 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showRegisterSuccess('Регистрация успешна! Вход выполнен автоматически.');
+                    document.getElementById('registerSuccess').textContent = 'Регистрация успешна! Вход выполнен.';
+                    document.getElementById('registerSuccess').style.display = 'block';
+                    document.getElementById('registerError').style.display = 'none';
+
                     setTimeout(() => {
                         window.location.href = '/yar_galery/home/';
                     }, 1500);
                 } else {
-                    showRegisterError(data.error || 'Ошибка регистрации');
+                    document.getElementById('registerError').textContent = data.error || 'Ошибка регистрации';
+                    document.getElementById('registerError').style.display = 'block';
+                    document.getElementById('registerSuccess').style.display = 'none';
                 }
             } catch (error) {
-                showRegisterError('Ошибка соединения с сервером');
+                document.getElementById('registerError').textContent = 'Ошибка соединения с сервером';
+                document.getElementById('registerError').style.display = 'block';
             } finally {
                 btn.disabled = false;
                 btn.textContent = 'Зарегистрироваться';
             }
-        }
-
-        function showLoginError(message) {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = '#721c24';
-            errorDiv.style.backgroundColor = '#f8d7da';
-        }
-
-        function showLoginSuccess(message) {
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            errorDiv.style.color = '#155724';
-            errorDiv.style.backgroundColor = '#d4edda';
-        }
-
-        function showRegisterError(message) {
-            const errorDiv = document.getElementById('registerError');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
-            document.getElementById('registerSuccess').style.display = 'none';
-        }
-
-        function showRegisterSuccess(message) {
-            const successDiv = document.getElementById('registerSuccess');
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
-            document.getElementById('registerError').style.display = 'none';
         }
 
         // Закрыть модальное окно при клике вне его
