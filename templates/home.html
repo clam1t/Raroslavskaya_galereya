@@ -1,33 +1,112 @@
 {% extends "base_hat.html" %}
-
-{% block title %}Главная{% endblock %}
+{% set active = 'home' %}
+{% block title %}Ярославская галерея — Главная{% endblock %}
 
 {% block content %}
-<div class="hero-section">
-    <h1>Добро пожаловать в галерею!</h1>
-    <p>Откройте для себя мир искусства</p>
+<main class="home-page">
 
-    <div class="gallery-preview">
-        <div class="exhibition-card">
-            <img src="https://via.placeholder.com/300x200" alt="Выставка">
-            <h3>Современное искусство</h3>
-            <p>до 30 апреля 2026</p>
-            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
-        </div>
+    <div class="home-subnav">
+        <button class="item {% if section=='collection' %}on{% endif %}"
+                onclick="setSection('collection')">
+            Коллекция
+            <span class="sub">Первая научно-историческая</span>
+        </button>
+        <button class="item {% if section=='about' %}on{% endif %}"
+                onclick="setSection('about')">О музее</button>
+        <button class="item {% if section=='other' %}on{% endif %}"
+                onclick="setSection('other')">Прочее</button>
+    </div>
 
-        <div class="exhibition-card">
-            <img src="https://via.placeholder.com/300x200" alt="Выставка">
-            <h3>Классика XIX века</h3>
-            <p>до 15 мая 2026</p>
-            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
-        </div>
-
-        <div class="exhibition-card">
-            <img src="https://via.placeholder.com/300x200" alt="Выставка">
-            <h3>Фотография</h3>
-            <p>до 1 июня 2026</p>
-            <a href="{{ url_for('buy_ticket') }}" class="btn">Купить билет</a>
+    <div class="home-hero">
+        <div class="home-hero-img">
+            <div class="home-caption">
+                <h1>Архетипы Ярослава</h1>
+                <p>19 февраля — 21 июня</p>
+            </div>
+            <a class="home-cta" href="{{ url_for('buy_ticket') }}">Купить билет</a>
         </div>
     </div>
-</div>
+
+    <div id="home-sub" class="home-sub-content">
+
+        <section id="sec-collection" class="shell" style="padding:40px 56px 60px;{% if section!='collection' %}display:none{% endif %}">
+            <h2 class="coll-title">Архетипы Ярослава</h2>
+            <div class="arch-grid">
+                {% for a in archetypes[:3] %}
+                <div class="arch-card">
+                    <div class="arch-card-img" style="background:{{ a.bg }}"></div>
+                    <div class="arch-card-body">
+                        <h4>{{ a.name }}</h4>
+                        <p>{{ a.desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="arch-grid bottom">
+                {% for a in archetypes[3:] %}
+                <div class="arch-card">
+                    <div class="arch-card-img" style="background:{{ a.bg }}"></div>
+                    <div class="arch-card-body">
+                        <h4>{{ a.name }}</h4>
+                        <p>{{ a.desc }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section id="sec-about" class="shell" style="padding:50px 56px 60px;{% if section!='about' %}display:none{% endif %}">
+            <div class="about-hero">
+                <span></span>
+                <div>
+                    <div class="h-eyebrow">Ярослав Мажугин</div>
+                    <h1>Человек эпохи</h1>
+                </div>
+                <span></span>
+            </div>
+            <div class="about-grid">
+                <div class="about-col">
+                    <p>Ярославская галерея — одна из главных коллекций современного русского искусства, отражающая уникальный взгляд на мир и культуру. Это гостеприимный музей, ценный своей коллекцией и многообразием представленных идей.</p>
+                    <h4>Профессионализм</h4>
+                    <p>Все произведения соответствуют самым высоким стандартам профессионализма. Тому гарантия — наш опыт.</p>
+                </div>
+                <div class="about-painting">
+                    <img src="{{ url_for('static', filename='images/hero-portrait.png') }}" alt="Аполлон">
+                </div>
+                <div class="about-col">
+                    <h4>Наши деятельности</h4>
+                    <p>Мы готовим выставки, посвящённые великим именам в искусстве. Просвещаемся творчеством, помогая видеть людей и эпоху.</p>
+                    <p>Открыты для диалога с гостями, исследователями и партнёрами — от частных коллекционеров до научных институций.</p>
+                </div>
+            </div>
+            <div class="about-quote">
+                Искусство — единственная серьёзная вещь в мире,<br>и художник — единственный, кто никогда не серьёзен
+            </div>
+        </section>
+
+        <section id="sec-other" class="shell" style="padding:50px 56px 60px;{% if section!='other' %}display:none{% endif %}">
+            <h2 class="coll-title">Прочее</h2>
+            <div class="other-grid">
+                {% for c in other_cards %}
+                <div class="other-card">
+                    <h4>{{ c.t }}</h4>
+                    <p>{{ c.d }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<script>
+function setSection(s){
+  ['collection','about','other'].forEach(name=>{
+    document.getElementById('sec-'+name).style.display = (name===s) ? '' : 'none';
+  });
+  document.querySelectorAll('.home-subnav .item').forEach(el=>el.classList.remove('on'));
+  event.currentTarget.classList.add('on');
+  setTimeout(()=>document.getElementById('home-sub').scrollIntoView({behavior:'smooth'}),50);
+}
+</script>
 {% endblock %}

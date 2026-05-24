@@ -1,362 +1,108 @@
 {% extends "base_hat.html" %}
-
+{% set active = 'tickets' %}
 {% block title %}Купить билет{% endblock %}
 
 {% block content %}
-<div class="ticket-page">
-    <h1>Покупка входного билета в галерею</h1>
-
-    <div class="ticket-card">
-        <div class="ticket-info">
-            <h3>Входной билет в галерею</h3>
-            <p class="description">Единый билет на все выставки галереи</p>
-            <p class="price" data-price="500">Цена: 500 руб.</p>
+<main>
+    <div class="shell">
+        <div class="tk-head">
+            <h1>Выберите тип билета и дату посещения</h1>
         </div>
 
-        <div class="ticket-options">
-            <div class="form-group">
-                <label for="visit-date">Выберите дату посещения:</label>
-                <input type="date" id="visit-date" class="visit-date" required onchange="updateTotalPrice()">
+        <div class="tk-row">
+            {% for key, t in tickets.items() %}
+            <div class="tk t-{{ key }}" data-key="{{ key }}" data-price="{{ t.price }}" data-name="{{ t.name }}" onclick="pickTicket('{{ key }}')">
+                <div class="tk-kind">{{ t.kind }}</div>
+                <h3>{{ t.name }}</h3>
+                <div class="tk-desc">{{ t.desc }}</div>
+                <div class="tk-foot">
+                    <div class="tk-price">{{ '{:,}'.format(t.price).replace(',', ' ') }}<span class="cur"> ₽</span></div>
+                    <button type="button" class="tk-pick">Выбрать</button>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="ticket-quantity">Количество билетов:</label>
-                <input type="number" id="ticket-quantity" class="ticket-quantity" min="1" max="10" value="1" onchange="updateTotalPrice()">
-            </div>
-
-            <div class="total-price">
-                Итого: <span id="total-price">500</span> руб.
-            </div>
-
-            <button class="btn-buy" onclick="showPaymentQR()">Оплатить</button>
+            {% endfor %}
         </div>
+
+        <form class="tk-form" onsubmit="submitTicket(event)">
+            <h3>Детали покупки</h3>
+            <div class="tk-fields">
+                <div class="tk-fld">
+                    <label>Дата визита</label>
+                    <input type="date" id="visit_date" required>
+                </div>
+                <div class="tk-fld">
+                    <label>Время посещения</label>
+                    <select id="visit_time">
+                        <option value="11:00">11:00 — Открытие</option>
+                        <option value="13:00">13:00 — Дневной сеанс</option>
+                        <option value="16:00">16:00 — Послеобеденный</option>
+                        <option value="19:00">19:00 — Вечерний</option>
+                    </select>
+                </div>
+            </div>
+            <div class="tk-fld-row">
+                <div class="tk-fld">
+                    <label>Количество гостей</label>
+                    <div class="qty-wrap">
+                        <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
+                        <span class="qty-val" id="qty">1</span>
+                        <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
+                    </div>
+                </div>
+                <div class="tk-fld">
+                    <label>Тип билета</label>
+                    <div class="tk-total" id="picked_name" style="padding:11px 0">Билет на выставку</div>
+                </div>
+                <div class="tk-fld">
+                    <label>Сумма к оплате</label>
+                    <div class="tk-total" id="total" style="padding:11px 0">1 400 ₽</div>
+                </div>
+            </div>
+            <div class="msg-error" id="orderError"></div>
+            <div class="tk-submit">
+                <button type="submit">Совершить заказ</button>
+            </div>
+        </form>
     </div>
-
-    <!-- Модальное окно с QR-кодом -->
-    <div id="qrModal" class="modal">
-        <div class="modal-content qr-modal-content">
-            <span class="close" onclick="closeQRModal()">&times;</span>
-
-            <h2>Оплата через Сбербанк</h2>
-
-        <!-- Подтверждение данных -->
-            <div class="confirmation-details">
-                <h3>Подтверждение заказа:</h3>
-                <div class="detail-row">
-                    <span>Дата посещения:</span>
-                    <strong id="confirm-date"></strong>
-                </div>
-                <div class="detail-row">
-                    <span>Количество билетов:</span>
-                    <strong id="confirm-quantity"></strong>
-                </div>
-                <div class="detail-row">
-                    <span>Цена за 1 билет:</span>
-                    <strong>500 руб.</strong>
-                </div>
-                <div class="detail-row total">
-                    <span>К оплате:</span>
-                    <strong id="confirm-total"></strong>
-                </div>
-            </div>
-
-        <div class="qr-container">
-            <img src="{{ url_for('static', filename='images/qr-code.gif') }}" alt="QR-код для оплаты через Сбербанк" class="qr-code">
-            <p class="qr-instruction">Отсканируйте QR-код в приложении Сбербанк для оплаты</p>
-        </div>
-
-        <!-- Инструкция -->
-        <div class="payment-instruction">
-            <p>После оплаты администратор подтвердит платеж</p>
-            <p class="warning">Билеты будут отправлены на вашу почту после подтверждения</p>
-        </div>
-
-        <div class="modal-buttons">
-            <button class="btn-cancel" onclick="closeQRModal()">Закрыть</button>
-        </div>
-    </div>
-</div>
+</main>
 
 <script>
-    // Функция для обновления итоговой цены
-    function updateTotalPrice() {
-        const quantity = document.getElementById('ticket-quantity').value;
-        const price = 500; // фиксированная цена билета
-        const total = price * parseInt(quantity);
-        document.getElementById('total-price').textContent = total;
-    }
+const PRICES = { {% for k,t in tickets.items() %}'{{ k }}':{name:'{{ t.name }}', price:{{ t.price }}},{% endfor %} };
+let picked = 'exh', qty = 1;
+function recalc(){
+  document.getElementById('picked_name').textContent = PRICES[picked].name;
+  const total = PRICES[picked].price * qty;
+  document.getElementById('total').textContent = total.toLocaleString('ru-RU') + ' ₽';
+  document.querySelectorAll('.tk').forEach(el=>el.classList.toggle('selected', el.dataset.key===picked));
+}
+function pickTicket(k){ picked = k; recalc(); }
+function changeQty(d){ qty = Math.max(1, Math.min(20, qty+d)); document.getElementById('qty').textContent = qty; recalc(); }
+document.addEventListener('DOMContentLoaded',()=>{
+  const t = new Date(); t.setDate(t.getDate()+1);
+  document.getElementById('visit_date').value = t.toISOString().split('T')[0];
+  document.getElementById('visit_date').min = new Date().toISOString().split('T')[0];
+  recalc();
+});
 
-    // Функция для показа QR-кода с подтверждением данных
-    async function showPaymentQR() {
-        {% if session.username %}
-            const date = document.getElementById('visit-date').value;
-            const quantity = document.getElementById('ticket-quantity').value;
-            const total = document.getElementById('total-price').textContent;
-
-            if (!date) {
-                alert('Пожалуйста, выберите дату посещения');
-                return;
-            }
-
-            // Отправляем данные на бэкенд
-            try {
-                const response = await fetch('/yar_galery/process_payment/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        date: date,
-                        quantity: parseInt(quantity),
-                        total: parseInt(total)
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Заполняем данные в модальном окне
-                    document.getElementById('confirm-date').textContent = date;
-                    document.getElementById('confirm-quantity').textContent = quantity;
-                    document.getElementById('confirm-total').textContent = total + ' руб.';
-
-                    // Показываем модальное окно
-                    document.getElementById('qrModal').style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-                } else {
-                    alert('Ошибка при обработке платежа: ' + data.error);
-                }
-            } catch (error) {
-                alert('Ошибка соединения с сервером');
-            }
-        {% else %}
-            alert('Для покупки билетов необходимо войти в систему');
-            openAuthModal('login');
-        {% endif %}
-    }
-
-    // Функция для закрытия QR-модального окна
-    function closeQRModal() {
-        document.getElementById('qrModal').style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-
-    // Устанавливаем минимальную дату (сегодня) для поля даты
-    document.addEventListener('DOMContentLoaded', function() {
-        const today = new Date().toISOString().split('T')[0];
-        const dateInput = document.getElementById('visit-date');
-        dateInput.min = today;
-
-        // Устанавливаем значение по умолчанию на завтра
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        dateInput.value = tomorrow.toISOString().split('T')[0];
-    });
+async function submitTicket(e){
+  e.preventDefault();
+  const err = document.getElementById('orderError'); err.textContent='';
+  {% if not session.user_id %}
+    openAuthModal('login');
+    return;
+  {% endif %}
+  try{
+    const r = await fetch('/yar_galery/order/',{method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        ticket_key: picked,
+        date: document.getElementById('visit_date').value,
+        time: document.getElementById('visit_time').value,
+        quantity: qty
+      })});
+    const d = await r.json();
+    if(r.ok){ location.href = '{{ url_for("account") }}' }
+    else { err.textContent = d.error || 'Ошибка' }
+  }catch(_){ err.textContent='Ошибка соединения' }
+}
 </script>
-
-<style>
-    .ticket-page {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-
-    h1 {
-        text-align: center;
-        color: #333;
-        margin-bottom: 30px;
-    }
-
-    .ticket-card {
-        background-color: #fff;
-        border: 2px solid #3498db;
-        border-radius: 12px;
-        padding: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-
-    .ticket-info {
-        text-align: center;
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 2px dashed #3498db;
-    }
-
-    .ticket-info h3 {
-        color: #2c3e50;
-        font-size: 24px;
-        margin-bottom: 10px;
-    }
-
-    .description {
-        color: #7f8c8d;
-        font-size: 16px;
-        margin-bottom: 15px;
-    }
-
-    .price {
-        font-size: 24px;
-        color: #27ae60;
-        font-weight: bold;
-        margin: 10px 0;
-    }
-
-    .ticket-options {
-        margin-top: 20px;
-    }
-
-    .form-group {
-        margin-bottom: 20px;
-    }
-
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-        color: #34495e;
-        font-size: 16px;
-    }
-
-    .form-group input {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #bdc3c7;
-        border-radius: 6px;
-        font-size: 16px;
-        transition: border-color 0.3s;
-    }
-
-    .form-group input:focus {
-        outline: none;
-        border-color: #3498db;
-    }
-
-    .form-group input[type="number"] {
-        width: 120px;
-    }
-
-    .total-price {
-        font-size: 22px;
-        font-weight: bold;
-        color: #2c3e50;
-        margin: 25px 0;
-        padding: 15px;
-        background-color: #ecf0f1;
-        border-radius: 6px;
-        text-align: center;
-    }
-
-    .total-price span {
-        color: #27ae60;
-        font-size: 28px;
-    }
-
-    .btn-buy {
-        width: 100%;
-        background-color: #27ae60;
-        color: white;
-        border: none;
-        padding: 15px;
-        border-radius: 6px;
-        font-size: 18px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-
-    .btn-buy:hover {
-        background-color: #219a52;
-    }
-
-    /* Стили для модального окна с QR */
-    .qr-modal-content {
-        max-width: 500px;
-    }
-
-    .confirmation-details {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        margin: 20px 0;
-        border: 1px solid #dee2e6;
-    }
-
-    .confirmation-details h3 {
-        margin-top: 0;
-        color: #2c3e50;
-        font-size: 18px;
-        margin-bottom: 15px;
-    }
-
-    .detail-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        padding-bottom: 5px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .detail-row.total {
-        margin-top: 15px;
-        padding-top: 10px;
-        border-top: 2px solid #3498db;
-        border-bottom: none;
-        font-size: 18px;
-    }
-
-    .qr-container {
-        text-align: center;
-        margin: 20px 0;
-    }
-
-    .qr-code {
-        max-width: 250px;
-        border: 1px solid #ddd;
-        padding: 10px;
-        background: white;
-    }
-
-    .qr-instruction {
-        color: #666;
-        font-size: 14px;
-        margin-top: 10px;
-    }
-
-    .payment-instruction {
-        background-color: #e3f2fd;
-        padding: 15px;
-        border-radius: 6px;
-        margin: 20px 0;
-    }
-
-    .payment-instruction p {
-        margin: 5px 0;
-    }
-
-    .payment-instruction .warning {
-        color: #d32f2f;
-        font-size: 13px;
-    }
-
-    .modal-buttons {
-        display: flex;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    .btn-cancel {
-        flex: 1;
-        background-color: #e74c3c;
-        color: white;
-        border: none;
-        padding: 12px;
-        border-radius: 4px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-
-    .btn-cancel:hover {
-        background-color: #c0392b;
-    }
-</style>
 {% endblock %}

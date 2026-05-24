@@ -1,0 +1,113 @@
+{% extends "base_hat.html" %}
+{% set active = 'account' %}
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+<main>
+    <div class="shell">
+        <div class="acc-head">
+            <h1>Личный кабинет</h1>
+            <p>Здравствуйте, {{ user.first_name }}. У вас {{ user.tickets|length }} активн{{ 'ый билет' if user.tickets|length==1 else 'ых билета' if user.tickets|length<5 and user.tickets|length>1 else 'ых билетов' }}.</p>
+        </div>
+
+        <div class="acc-tabs">
+            <a class="acc-tab {% if tab=='tickets' %}active{% endif %}" href="{{ url_for('account', tab='tickets') }}">Активные билеты</a>
+            <a class="acc-tab {% if tab=='profile' %}active{% endif %}" href="{{ url_for('account', tab='profile') }}">Профиль</a>
+        </div>
+
+        {% if tab == 'tickets' %}
+            <div class="acc-tickets-list">
+                <h3>Активные билеты</h3>
+                {% if user.tickets %}
+                    <div class="at-grid">
+                        {% for t in user.tickets %}
+                        {% set style = ticket_styles[t.ticket_type] if t.ticket_type in ticket_styles else 's-red' %}
+                        <div class="at {{ style }}">
+                            <div class="at-top">
+                                <span>{{ t.ticket_type }}</span>
+                                <span>{{ t.date }}</span>
+                            </div>
+                            <div>
+                                <h4>{{ t.ticket_type }}</h4>
+                                <div class="at-foot">
+                                    <span>Гостей: {{ t.quantity }}<br>{{ '{:,}'.format(t.price).replace(',', ' ') }} ₽</span>
+                                    <div class="qr">QR · {{ t.qr or loop.index0|string }}</div>
+                                </div>
+                            </div>
+                            <div class="at-actions">
+                                <button class="at-change" onclick="openChange({{ loop.index0 }}, '{{ t.ticket_type }}')">Изменить тип</button>
+                                <form method="post" action="{{ url_for('delete_ticket', idx=loop.index0) }}" style="flex:1;display:flex">
+                                    <button type="submit" class="at-del" style="flex:1">Удалить</button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="acc-empty">У вас пока нет активных билетов. <a href="{{ url_for('buy_ticket') }}" style="color:var(--burgundy);text-decoration:underline">Купить билет</a></div>
+                {% endif %}
+            </div>
+
+        {% elif tab == 'profile' %}
+            {% if not edit %}
+            <div class="acc-profile">
+                <div class="profile-row"><label>Логин</label><div class="v">{{ user.email }}</div></div>
+                <div class="profile-row"><label>Имя</label><div class="v">{{ user.first_name }} {{ user.last_name }}</div></div>
+                <div class="profile-row"><label>ID</label><div class="v">№ {{ user.id }}</div></div>
+                <div class="profile-row"><label>Зарегистрирован</label><div class="v">{{ user.time.strftime('%d.%m.%Y') }}</div></div>
+                <div class="profile-actions">
+                    <a class="btn-text" href="{{ url_for('account', tab='profile', edit=1) }}">Изменить данные</a>
+                    <a class="btn-text" href="{{ url_for('logout') }}">Выйти</a>
+                </div>
+            </div>
+            {% else %}
+            <form class="acc-profile profile-edit" method="post" action="{{ url_for('update_profile') }}">
+                <h3 style="font-family:var(--serif);font-size:26px;color:#f5e8c8;margin-bottom:18px;font-weight:600;text-align:center">Введите новые данные</h3>
+                <div class="pe-grid">
+                    <div class="pe-fld"><label>Имя</label><input name="first_name" value="{{ user.first_name }}"></div>
+                    <div class="pe-fld"><label>Фамилия</label><input name="last_name" value="{{ user.last_name }}"></div>
+                    <div class="pe-fld"><label>Логин (email)</label><input name="email" value="{{ user.email }}"></div>
+                    <div class="pe-fld"><label>Новый пароль</label><input type="password" name="password" placeholder="оставьте пустым чтобы не менять"></div>
+                </div>
+                <div class="pe-save">
+                    <a class="btn-text cancel" href="{{ url_for('account', tab='profile') }}">Отмена</a>
+                    <button type="submit">Сохранить изменения</button>
+                </div>
+            </form>
+            {% endif %}
+        {% endif %}
+    </div>
+</main>
+
+{# Change ticket modal #}
+<div id="changeModal" class="modal-backdrop simple" onclick="if(event.target===this) closeChange()">
+    <div class="ct-modal">
+        <button class="modal-close" onclick="closeChange()">×</button>
+        <h3>Выберите новый тип билета</h3>
+        <form method="post" action="{{ url_for('change_ticket') }}" id="changeForm">
+            <input type="hidden" name="idx" id="changeIdx">
+            <div class="ct-options">
+                <button type="submit" name="new_type" value="Стандартный билет" class="ct-opt s-red"><span>Стандартный билет</span></button>
+                <button type="submit" name="new_type" value="Билет на выставку" class="ct-opt s-blue"><span>Билет на выставку</span></button>
+                <button type="submit" name="new_type" value="VIP билет" class="ct-opt s-black"><span>VIP билет</span></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openChange(idx, current){
+  document.getElementById('changeIdx').value = idx;
+  document.querySelectorAll('#changeForm .ct-opt').forEach(b => {
+    b.style.display = (b.value === current) ? 'none' : '';
+  });
+  document.getElementById('changeModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeChange(){
+  document.getElementById('changeModal').classList.remove('open');
+  document.body.style.overflow='auto';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeChange()});
+</script>
+{% endblock %}

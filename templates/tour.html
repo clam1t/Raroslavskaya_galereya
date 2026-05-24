@@ -1,0 +1,24 @@
+{% extends "base_hat.html" %}
+{% set active = 'tour' %}
+{% block title %}3D прогулка{% endblock %}
+
+{% block content %}
+<main>
+    <div class="shell tour">
+        <h1>3D прогулка</h1>
+        <p>Пройдитесь по залам галереи, не выходя из дома</p>
+        <div class="tour-stage">
+            <div class="tour-stage-inner">
+                <h2>Парадный зал № 1</h2>
+                <p>Серия «Архетипы Ярослава» · 12 работ</p>
+                <a href="{{ url_for('buy_ticket') }}"><button>Войти в зал</button></a>
+            </div>
+        </div>
+        <div style="display:flex;gap:16px;justify-content:center;margin-top:30px;flex-wrap:wrap">
+            {% for r in rooms %}
+            <button style="padding:10px 22px;border:1px solid rgba(106,24,24,0.35);background:rgba(243,226,194,0.4);font-family:var(--serif);font-size:17px;color:var(--ink);border-radius:30px;cursor:pointer">{{ r }}</button>
+            {% endfor %}
+        </div>
+    </div>
+</main>
+{% endblock %}

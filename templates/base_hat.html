@@ -3,350 +3,207 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Галерея{% endblock %}</title>
+    <title>{% block title %}Ярославская галерея{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <a href="{{ url_for('home') }}" class="logo">🎨 Галерея</a>
-            <div class="nav-links">
-                <a href="{{ url_for('buy_ticket') }}">Купить билет</a>
-                <div class="user-info">
-                    {% if session.username %}
-                        <span class="username">{{ session.username }}</span>
-                        <a href="{{ url_for('logout') }}" class="logout-btn">Выйти</a>
-                    {% else %}
-                        <a href="#" onclick="openAuthModal('login')" class="login-btn">Вход</a>
-                        <a href="#" onclick="openAuthModal('register')" class="register-btn">Регистрация</a>
-                    {% endif %}
+<div class="app">
+
+    <nav class="nav">
+        <div class="nav-inner">
+            <a class="brand" href="{{ url_for('home') }}">
+                <div class="brand-logo"><img src="{{ url_for('static', filename='images/logo-ya.png') }}" alt="Я"></div>
+                <div class="brand-text">
+                    <span class="b1">Ярославская</span>
+                    <span class="b2">галерея</span>
                 </div>
+            </a>
+            <div class="nav-links">
+                <a href="{{ url_for('tour') }}" class="nav-link {% if active=='tour' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24"><path d="M4 21h16M5 21V10l7-5 7 5v11M9 21v-7h6v7M2 10h20"/></svg>
+                    <span>3D прогулка</span>
+                </a>
+                <a href="{{ url_for('buy_ticket') }}" class="nav-link {% if active=='tickets' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24"><path d="M3 9V7a2 2 0 012-2h14a2 2 0 012 2v2a2 2 0 100 6v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 100-6z"/><path d="M13 5v14" stroke-dasharray="2 2"/></svg>
+                    <span>купить билет</span>
+                </a>
+                {% if session.user_id %}
+                <a href="{{ url_for('account') }}" class="nav-link {% if active=='account' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24"><path d="M3 21V11l9-7 9 7v10h-6v-7H9v7H3z"/></svg>
+                    <span>Личный кабинет</span>
+                </a>
+                {% else %}
+                <button class="nav-link" onclick="openAuthModal('login')">
+                    <svg viewBox="0 0 24 24"><path d="M3 21V11l9-7 9 7v10h-6v-7H9v7H3z"/></svg>
+                    <span>Личный кабинет</span>
+                </button>
+                {% endif %}
             </div>
+            <button class="nav-lang">RU</button>
         </div>
     </nav>
 
-    <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
-    <div id="authModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeAuthModal()">&times;</span>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for cat, msg in messages %}
+            <div class="flash {{ 'ok' if cat=='ok' else '' }}" data-flash>{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
 
-            <!-- Переключатель вкладок -->
-            <div class="tab-container">
-                <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Вход</button>
-                <button class="tab-btn" id="registerTab" onclick="switchTab('register')">Регистрация</button>
-                <button class="tab-btn" id="passwordResetTab" onclick="switchTab('passwordReset')">Забыл пароль</button>
+    {% block content %}{% endblock %}
+
+    <footer class="foot">
+        <div class="foot-inner">
+            <div>
+                <h4>О музее</h4>
+                <p>Современный музей классического искусства.</p>
+            </div>
+            <div>
+                <h4>Посетителям</h4>
+                <a>График работы</a>
+                <a>Как добраться</a>
+                <a>Доступная среда</a>
+            </div>
+            <div>
+                <h4>Контакты</h4>
+                <p>ул. Парадная, 12<br>+7 (000) 000 00 00<br>hello@galereya.ru</p>
+            </div>
+            <div class="foot-crest"></div>
+        </div>
+    </footer>
+</div>
+
+{# ===== AUTH MODAL ===== #}
+<div id="authModal" class="modal-backdrop" onclick="if(event.target===this) closeAuthModal()">
+    <div class="arch-stage">
+        <button type="button" class="modal-close" onclick="closeAuthModal()" aria-label="Закрыть">×</button>
+        <img class="arch-bg" src="{{ url_for('static', filename='images/arch-clear.png') }}" alt="">
+        <div class="arch-content">
+            <div class="auth-tabs" id="authTabs">
+                <button class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Вход</button>
+                <button class="auth-tab" data-tab="register" onclick="switchAuthTab('register')">Регистрация</button>
             </div>
 
-            <!-- Форма входа -->
-            <div id="loginForm" class="auth-form active">
-                <h2>Вход в систему</h2>
-                <div id="loginError" class="error-message" style="display: none;"></div>
-                <div id="loginSuccess" class="success-message" style="display: none;"></div>
+            <form id="loginForm" class="auth-form active" onsubmit="submitLogin(event)">
+                <div class="fld">
+                    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg></span>
+                    <input type="email" id="login_email" placeholder="Ваш email" required>
+                </div>
+                <div class="fld">
+                    <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></span>
+                    <input type="password" id="login_password" placeholder="Пароль" required>
+                </div>
+                <div class="msg-error" id="loginError"></div>
+                <button type="submit" class="btn-rose" id="loginBtn">Войти</button>
+                <div class="auth-foot">
+                    <button type="button" onclick="switchAuthTab('support')">Забыли пароль?</button>
+                </div>
+            </form>
 
-                <form onsubmit="submitLogin(event)">
-                    <div class="form-group">
-                        <label for="login_first_name">Имя:</label>
-                        <input type="text" id="login_first_name" name="first_name" required>
-                    </div>
+            <form id="registerForm" class="auth-form wide" onsubmit="submitRegister(event)">
+                <h3>Укажите Ваши данные</h3>
+                <div class="fld-row">
+                    <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><input id="reg_first_name" placeholder="Ваше имя" required></div>
+                    <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg></span><input type="email" id="reg_email" placeholder="Ваш email" required></div>
+                </div>
+                <div class="fld-row">
+                    <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></span><input type="password" id="reg_password" placeholder="Придумайте пароль" required></div>
+                    <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><input id="reg_last_name" placeholder="Ваша фамилия" required></div>
+                </div>
+                <div class="msg-error" id="registerError"></div>
+                <button type="submit" class="btn-rose" id="registerBtn">Зарегистрироваться</button>
+                <div class="auth-foot auth-checks">
+                    <label><input type="checkbox" checked><span>Хочу получать информацию о новостях и акциях компании «Ярослав»</span></label>
+                    <label><input type="checkbox" checked><span>Я принимаю условия Пользовательского соглашения и даю своё согласие АО «Ярослав» на обработку моих персональных данных в соответствии с Федеральным законом от 27.07.2006 года №152-ФЗ «О персональных данных».</span></label>
+                </div>
+            </form>
 
-                    <div class="form-group">
-                        <label for="login_last_name">Фамилия:</label>
-                        <input type="text" id="login_last_name" name="last_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="login_password">Пароль:</label>
-                        <input type="password" id="login_password" name="password" required>
-                    </div>
-
-                    <button type="submit" id="loginBtn">Войти</button>
-                </form>
-            </div>
-
-            <!-- Форма восстановления пароля -->
-            <div id="passwordResetForm" class="auth-form">
-                <h2>Восстановить пароль</h2>
-                <div id="passwordError" class="error-message" style="display: none;"></div>
-                <div id="passwordSuccess" class="success-message" style="display: none;"></div>
-
-                <form onsubmit="resetPassword(event)">
-                    <div class="form-group">
-                        <label for="reset_first_name">Имя:</label>
-                        <input type="text" id="reset_first_name" name="first_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reset_last_name">Фамилия:</label>
-                        <input type="text" id="reset_last_name" name="last_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reset_email">Почта:</label>
-                        <input type="email" id="reset_email" name="email" required>
-                    </div>
-
-                    <button type="submit" id="sendcodeBtn">Прислать пароль</button>
-                </form>
-            </div>
-
-            <!-- Форма регистрации -->
-            <div id="registerForm" class="auth-form">
-                <h2>Регистрация</h2>
-                <div id="registerError" class="error-message" style="display: none;"></div>
-                <div id="registerSuccess" class="success-message" style="display: none;"></div>
-
-                <form onsubmit="submitRegistration(event)">
-                    <div class="form-group">
-                        <label for="reg_first_name">Имя:</label>
-                        <input type="text" id="reg_first_name" name="first_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reg_last_name">Фамилия:</label>
-                        <input type="text" id="reg_last_name" name="last_name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reg_email">Email:</label>
-                        <input type="email" id="reg_email" name="email" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reg_password">Пароль:</label>
-                        <input type="password" id="reg_password" name="password" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="reg_confirm_password">Подтвердите пароль:</label>
-                        <input type="password" id="reg_confirm_password" name="confirm_password" required>
-                    </div>
-
-                    <button type="submit" id="registerBtn">Зарегистрироваться</button>
-                </form>
-            </div>
+            <form id="supportForm" class="auth-form" onsubmit="submitSupport(event)">
+                <h3 style="font-size:28px;font-weight:500;padding-bottom:10px;border-bottom:1px solid rgba(42,26,14,0.4);width:100%">Поддержка</h3>
+                <h3 style="font-size:20px">Укажите Ваши данные</h3>
+                <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><input id="sup_first_name" placeholder="Ваше имя" required></div>
+                <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg></span><input type="email" id="sup_email" placeholder="Ваш email" required></div>
+                <div class="fld"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg></span><input id="sup_last_name" placeholder="Ваша фамилия" required></div>
+                <div class="msg-error" id="supportError"></div>
+                <div class="msg-ok" id="supportOk"></div>
+                <button type="submit" class="btn-rose" id="supportBtn">Отправить</button>
+            </form>
         </div>
     </div>
+</div>
 
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+<script>
+function openAuthModal(tab){
+  document.getElementById('authModal').classList.add('open');
+  document.body.style.overflow='hidden';
+  switchAuthTab(tab || 'login');
+}
+function closeAuthModal(){
+  document.getElementById('authModal').classList.remove('open');
+  document.body.style.overflow='auto';
+}
+function switchAuthTab(tab){
+  document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
+  document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+  const tabs = document.getElementById('authTabs');
+  if(tab==='support'){tabs.style.display='none'} else {tabs.style.display='flex'}
+  if(tab==='login'){document.getElementById('loginForm').classList.add('active'); document.querySelector('[data-tab="login"]')?.classList.add('active')}
+  if(tab==='register'){document.getElementById('registerForm').classList.add('active'); document.querySelector('[data-tab="register"]')?.classList.add('active')}
+  if(tab==='support'){document.getElementById('supportForm').classList.add('active')}
+}
 
-    <script>
-        // Открыть модальное окно
-        function openAuthModal(tab) {
-            document.getElementById('authModal').style.display = 'block';
-            document.body.style.overflow = 'hidden';
-            switchTab(tab);
-        }
+async function submitLogin(e){
+  e.preventDefault();
+  const btn=document.getElementById('loginBtn'); btn.disabled=true;
+  const err=document.getElementById('loginError'); err.textContent='';
+  try{
+    const r=await fetch('/yar_galery/login/',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:document.getElementById('login_email').value, password:document.getElementById('login_password').value})});
+    const d=await r.json();
+    if(r.ok){location.reload()} else {err.textContent=d.error||'Ошибка входа'}
+  }catch(_){err.textContent='Ошибка соединения'}
+  finally{btn.disabled=false}
+}
 
-        // Закрыть модальное окно
-        function closeAuthModal() {
-            document.getElementById('authModal').style.display = 'none';
-            document.body.style.overflow = 'auto';
+async function submitRegister(e){
+  e.preventDefault();
+  const btn=document.getElementById('registerBtn'); btn.disabled=true;
+  const err=document.getElementById('registerError'); err.textContent='';
+  try{
+    const r=await fetch('/yar_galery/register/',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        first_name:document.getElementById('reg_first_name').value,
+        last_name:document.getElementById('reg_last_name').value,
+        email:document.getElementById('reg_email').value,
+        password:document.getElementById('reg_password').value
+      })});
+    const d=await r.json();
+    if(r.ok){location.href='{{ url_for("account") }}'} else {err.textContent=d.error||'Ошибка регистрации'}
+  }catch(_){err.textContent='Ошибка соединения'}
+  finally{btn.disabled=false}
+}
 
-            // Очистить формы
-            document.getElementById('loginForm').reset();
-            document.getElementById('registerForm').reset();
-            document.getElementById('passwordResetForm').reset();
+async function submitSupport(e){
+  e.preventDefault();
+  const btn=document.getElementById('supportBtn'); btn.disabled=true;
+  const err=document.getElementById('supportError'); err.textContent='';
+  const ok=document.getElementById('supportOk'); ok.textContent='';
+  try{
+    const r=await fetch('/yar_galery/resetPassword/',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        first_name:document.getElementById('sup_first_name').value,
+        last_name:document.getElementById('sup_last_name').value,
+        email:document.getElementById('sup_email').value
+      })});
+    const d=await r.json();
+    if(r.ok){ok.textContent='Пароль отправлен на почту'; setTimeout(()=>switchAuthTab('login'),1500)} else {err.textContent=d.error||'Ошибка'}
+  }catch(_){err.textContent='Ошибка соединения'}
+  finally{btn.disabled=false}
+}
 
-            // Скрыть сообщения
-            document.getElementById('loginError').style.display = 'none';
-            document.getElementById('loginSuccess').style.display = 'none';
-            document.getElementById('registerError').style.display = 'none';
-            document.getElementById('registerSuccess').style.display = 'none';
-            document.getElementById('passwordError').style.display = 'none';
-            document.getElementById('passwordSuccess').style.display = 'none';
-        }
+document.addEventListener('keydown',e=>{if(e.key==='Escape') closeAuthModal()});
+document.querySelectorAll('[data-flash]').forEach(el=>setTimeout(()=>el.remove(),3500));
+</script>
 
-        // Переключение между вкладками
-        function switchTab(tab) {
-            const loginTab = document.getElementById('loginTab');
-            const registerTab = document.getElementById('registerTab');
-            const passwordResetTab = document.getElementById('passwordResetTab');
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const passwordResetForm = document.getElementById('passwordResetForm');
-
-            // Сначала убираем активный класс у всех
-            loginTab.classList.remove('active');
-            registerTab.classList.remove('active');
-            passwordResetTab.classList.remove('active');
-            loginForm.classList.remove('active');
-            registerForm.classList.remove('active');
-            passwordResetForm.classList.remove('active');
-
-            // Добавляем активный класс в зависимости от выбранной вкладки
-            if (tab === 'login') {
-                loginTab.classList.add('active');
-                loginForm.classList.add('active');
-            } else if (tab === 'register') {
-                registerTab.classList.add('active');
-                registerForm.classList.add('active');
-            } else if (tab === 'passwordReset') {
-                passwordResetTab.classList.add('active');
-                passwordResetForm.classList.add('active');
-            }
-        }
-
-        // Отправка входа
-        async function submitLogin(event) {
-            event.preventDefault();
-
-            const formData = {
-                first_name: document.getElementById('login_first_name').value,
-                last_name: document.getElementById('login_last_name').value,
-                password: document.getElementById('login_password').value
-            };
-
-            const btn = document.getElementById('loginBtn');
-            btn.disabled = true;
-            btn.textContent = 'Вход...';
-
-            try {
-                const response = await fetch('/yar_galery/login/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('loginSuccess').textContent = 'Вход выполнен! Перенаправление...';
-                    document.getElementById('loginSuccess').style.display = 'block';
-                    document.getElementById('loginError').style.display = 'none';
-
-                    setTimeout(() => {
-                        window.location.href = '/yar_galery/home/';
-                    }, 1000);
-                } else {
-                    document.getElementById('loginError').textContent = data.error || 'Ошибка входа';
-                    document.getElementById('loginError').style.display = 'block';
-                    document.getElementById('loginSuccess').style.display = 'none';
-                }
-            } catch (error) {
-                document.getElementById('loginError').textContent = 'Ошибка соединения с сервером';
-                document.getElementById('loginError').style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Войти';
-            }
-        }
-
-        // Восстановление пароля
-        async function resetPassword(event) {
-            event.preventDefault();
-
-            const formData = {
-                first_name: document.getElementById('reset_first_name').value,
-                last_name: document.getElementById('reset_last_name').value,
-                email: document.getElementById('reset_email').value
-            };
-
-            const btn = document.getElementById('sendcodeBtn');
-            btn.disabled = true;
-            btn.textContent = 'Отправка...';
-
-            try {
-                const response = await fetch('/yar_galery/resetPassword/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                if (response.ok) {
-                    document.getElementById('passwordSuccess').textContent = 'Пароль отправлен на почту!';
-                    document.getElementById('passwordSuccess').style.display = 'block';
-                    document.getElementById('passwordError').style.display = 'none';
-
-                    setTimeout(() => {
-                        switchTab('login');
-                    }, 2000);
-                } else {
-                    const data = await response.json();
-                    document.getElementById('passwordError').textContent = data.error || 'Ошибка восстановления';
-                    document.getElementById('passwordError').style.display = 'block';
-                    document.getElementById('passwordSuccess').style.display = 'none';
-                }
-            } catch (error) {
-                document.getElementById('passwordError').textContent = 'Ошибка соединения с сервером';
-                document.getElementById('passwordError').style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Прислать пароль';
-            }
-        }
-
-        // Отправка регистрации
-        async function submitRegistration(event) {
-            event.preventDefault();
-
-            const password = document.getElementById('reg_password').value;
-            const confirmPassword = document.getElementById('reg_confirm_password').value;
-
-            if (password !== confirmPassword) {
-                document.getElementById('registerError').textContent = 'Пароли не совпадают';
-                document.getElementById('registerError').style.display = 'block';
-                document.getElementById('registerSuccess').style.display = 'none';
-                return;
-            }
-
-            const formData = {
-                first_name: document.getElementById('reg_first_name').value,
-                last_name: document.getElementById('reg_last_name').value,
-                email: document.getElementById('reg_email').value,
-                password: password,
-                confirm_password: confirmPassword
-            };
-
-            const btn = document.getElementById('registerBtn');
-            btn.disabled = true;
-            btn.textContent = 'Регистрация...';
-
-            try {
-                const response = await fetch('/yar_galery/register/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('registerSuccess').textContent = 'Регистрация успешна! Вход выполнен.';
-                    document.getElementById('registerSuccess').style.display = 'block';
-                    document.getElementById('registerError').style.display = 'none';
-
-                    setTimeout(() => {
-                        window.location.href = '/yar_galery/home/';
-                    }, 1500);
-                } else {
-                    document.getElementById('registerError').textContent = data.error || 'Ошибка регистрации';
-                    document.getElementById('registerError').style.display = 'block';
-                    document.getElementById('registerSuccess').style.display = 'none';
-                }
-            } catch (error) {
-                document.getElementById('registerError').textContent = 'Ошибка соединения с сервером';
-                document.getElementById('registerError').style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Зарегистрироваться';
-            }
-        }
-
-        // Закрыть модальное окно при клике вне его
-        window.onclick = function(event) {
-            const modal = document.getElementById('authModal');
-            if (event.target == modal) {
-                closeAuthModal();
-            }
-        }
-    </script>
+{% block scripts %}{% endblock %}
 </body>
 </html>
